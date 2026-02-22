@@ -2,7 +2,7 @@ import numpy as np
 from datetime import datetime
 from typing import Dict, Tuple, Any
 
-from utils import SensorType
+from sensors.utils import SensorType
 
 class SensorIoT:
 
