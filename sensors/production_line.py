@@ -72,7 +72,7 @@ if __name__ == "__main__":
 
     from time import sleep
 
-    station = MeasurementStation("test_station", seed=42)
+    station = MeasurementStation("test_station")
     while True:
         try:
             print(station.get_measurement())
