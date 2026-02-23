@@ -33,7 +33,7 @@ class TurbineConsumer:
 if __name__ == "__main__":
 
     config = {
-        "bootstrap.servers":"192.168.0.157:9092",
+        "bootstrap.servers":"localhost:9092",
         "client.id" : "turbine_consumer_pi1",
         "group.id" : "my_group"
         }
