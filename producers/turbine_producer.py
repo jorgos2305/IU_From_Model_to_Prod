@@ -25,6 +25,7 @@ class TurbineProducer:
             while True:
                 self.producer.produce(
                     topic=self._topic,
+                    key=b"pi_1",
                     value=self.get_measurement().encode("utf-8"),
                     callback=self.delivery_callback
                 )
@@ -37,9 +38,9 @@ class TurbineProducer:
 
     def delivery_callback(self, error:KafkaError | None, msg:Message):
         if error:
-            print(f"[ERROR] Message delivery failed: {error} - {self._now()}")
+            print(f"[ERROR] Message delivery failed: {error} - {msg.timestamp()}")
         else:
-            print(f"[INFO] Message {msg} delivered to {msg.topic()} [{msg.partition()}] - {self._now()}")
+            print(f"[INFO] Message {msg} delivered to Topic: {msg.topic()} Partition:{msg.partition()} Offset:{msg.offset()} - {msg.timestamp()}")
     
     def _now(self) -> str:
         return datetime.now().replace(microsecond=0).isoformat()
