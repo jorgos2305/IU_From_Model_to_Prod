@@ -32,18 +32,18 @@ class TurbineProducer:
                 self.producer.poll(0)
                 time.sleep(1)
         except KeyboardInterrupt:
-            print(f"[INFO] Producer stopped by user - {self._now()}")
+            print(f"[INFO] Producer stopped by user - {datetime.now().replace(microsecond=0).isoformat()}")
         finally:
             self.producer.flush()
 
     def delivery_callback(self, error:KafkaError | None, msg:Message):
+        timestamp_type, timestamp = msg.timestamp()
+        timestamp = datetime.fromtimestamp(timestamp / 1000).isoformat()
+
         if error:
-            print(f"[ERROR] Message delivery failed: {error} - {msg.timestamp()}")
+            print(f"[ERROR] Message delivery failed: {error} - {timestamp}")
         else:
-            print(f"[INFO] Message {msg} delivered to Topic: {msg.topic()} Partition:{msg.partition()} Offset:{msg.offset()} - {msg.timestamp()}")
-    
-    def _now(self) -> str:
-        return datetime.now().replace(microsecond=0).isoformat()
+            print(f"[INFO] Message with key: {msg.key()} delivered to Topic: {msg.topic()} Partition:{msg.partition()} Offset:{msg.offset()} - Timestamp[{timestamp_type}]:{timestamp}")
 
 
 if __name__ == "__main__":
