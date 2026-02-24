@@ -1,41 +1,59 @@
-import time
 import json
 import os
+from pathlib import Path
 from datetime import datetime
+from dotenv import load_dotenv
 from confluent_kafka import Consumer, Message, KafkaError
-from typing import Dict, List
+from typing import Dict
 
 class TurbineConsumer:
 
     def __init__(self, config:Dict, topic:str) -> None:
         self._config = config
         self.consumer = Consumer(config)
-        self._topic = topic
         self.consumer.subscribe([topic])
 
     def consume(self) -> None:
         try:
             while True:
-                msg = self.consumer.poll(1)
-                if msg is not None and msg.error() is None:
-                    print(msg.value())
-                    
-        except:
-            print("error")
+                msg = self.consumer.poll(1.0)
+                if msg is None:
+                    # No message has been delivered yet, try again
+                    continue
+                err = msg.error()
+                if err:
+                    print(f"[KafkaError] Consumer error: {err.code()} - {err.str()}")
+                else:
+                    self.process(msg) # Send the message to the FastAPI application
+        except KeyboardInterrupt:
+            print(f"[INFO] Consumer stopped by user - {datetime.now().replace(microsecond=0).isoformat()}")
+        finally:
+            self.consumer.close()
     
     def process(self, msg:Message) -> None:
         value_bytes = msg.value()
         if not value_bytes:
             print(value_bytes)
         else:
-            print(value_bytes.decode("utf-8"))
+            data = json.loads(value_bytes.decode("utf-8"))
+            print(data)
 
 if __name__ == "__main__":
 
+    BASEPATH = Path(__file__).resolve().parents[1]
+    
+    config_loaded = load_dotenv(BASEPATH / ".env")
+    if not config_loaded:
+        raise ValueError(f"No environment variable found under {BASEPATH}. Check file location.")
+    
+    # Config of kafka Consumer
+
     config = {
-        "bootstrap.servers":"localhost:9092",
+        "bootstrap.servers": os.getenv("BOOTSTRAP_SERVERS"),
         "client.id" : "turbine_consumer_pi1",
-        "group.id" : "my_group"
+        "group.id" : "turbine_consumers",
+        "auto.offset.reset" :"earliest",
+        "enable.auto.commit" : True
         }
     
     topic = "turbine_pi1"
