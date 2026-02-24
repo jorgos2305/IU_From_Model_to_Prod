@@ -1,10 +1,10 @@
 import time
 import json
 import os
+from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
-from confluent_kafka import Producer
-from confluent_kafka import Message, KafkaError
+from confluent_kafka import Producer, Message, KafkaError
 from typing import Dict
 
 from sensors.production_line import MeasurementStation
@@ -48,15 +48,19 @@ class TurbineProducer:
 
 if __name__ == "__main__":
 
-    load_dotenv(r"IU_From_Model_to_Prod/.env")
+    BASEPATH = Path(__file__).resolve().parents[1]
+    
+    config_loaded = load_dotenv(BASEPATH / ".env")
+    if not config_loaded:
+        raise ValueError(f"No environment variables found under {BASEPATH}. Check file location")
 
     # Config of kafka producer
     config = {
         "bootstrap.servers" : os.getenv("BOOTSTRAP_SERVERS"),
-        "client.id" : "turbine_producer_pi1"
+        "client.id" : "turbine_producer_pi1",
+        "acks":-1
     }
     topic = "turbine_pi1"
-    
     # get measurement data
     station = MeasurementStation("pi1")
     # set up producer and produces messages
