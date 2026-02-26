@@ -25,7 +25,7 @@ class TurbineProducer:
             while True:
                 self.producer.produce(
                     topic=self._topic,
-                    key=b"pi_1",
+                    key="pi_1".encode("utf-8"),
                     value=self.get_measurement().encode("utf-8"),
                     callback=self.delivery_callback
                 )
