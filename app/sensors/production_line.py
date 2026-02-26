@@ -2,7 +2,7 @@ import numpy as np
 from datetime import datetime
 from typing import Dict, Tuple, Any
 
-from sensors.utils import SensorType
+from app.sensors.utils import SensorType
 
 class SensorIoT:
 
@@ -52,7 +52,7 @@ class MeasurementStation:
 
     def get_measurement(self) -> Dict[str, Any]:
         measurement : Dict[str, Any]= { # this removes the pylance warning
-            "id" : self.station_id,
+            "station_id" : self.station_id,
             "timestamp" : datetime.now().replace(microsecond=0).isoformat()
         }
         

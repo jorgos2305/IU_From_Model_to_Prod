@@ -1,9 +1,10 @@
 import json
 import os
+import requests
 from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
-from confluent_kafka import Consumer, Message, KafkaError
+from confluent_kafka import Consumer, Message
 from typing import Dict
 
 class TurbineConsumer:
@@ -37,10 +38,12 @@ class TurbineConsumer:
         else:
             data = json.loads(value_bytes.decode("utf-8"))
             print(data)
+            response = requests.post("http://127.0.0.1:8000/predict/", json=data)
+            print(response.text)
 
 if __name__ == "__main__":
 
-    BASEPATH = Path(__file__).resolve().parents[1]
+    BASEPATH = Path(__file__).resolve().parents[2]
     
     config_loaded = load_dotenv(BASEPATH / ".env")
     if not config_loaded:

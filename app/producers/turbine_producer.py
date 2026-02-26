@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from confluent_kafka import Producer, Message, KafkaError
 from typing import Dict
 
-from sensors.production_line import MeasurementStation
+from app.sensors.production_line import MeasurementStation
 
 class TurbineProducer:
     
@@ -48,7 +48,7 @@ class TurbineProducer:
 
 if __name__ == "__main__":
 
-    BASEPATH = Path(__file__).resolve().parents[1]
+    BASEPATH = Path(__file__).resolve().parents[2]
     
     config_loaded = load_dotenv(BASEPATH / ".env")
     if not config_loaded:
