@@ -1,35 +1,27 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import Dict
-import joblib
-import pandas as pd
+from datetime import datetime
 
-# load model
-model = joblib.load(r"app/models/trained_models/anomaly_detector.joblib")
+from app.models.anomaly_detector import TurbineAnomalyDetector
 
 class MeasurementData(BaseModel):
+    """
+    Defines the structure of the data used to make a prediction.
+    """
     station_id : str
-    timestamp : str
+    timestamp : datetime
     temperature : float
     humidity : float
     noise : float
     is_anomaly : bool
 
-app = FastAPI()
+model = TurbineAnomalyDetector()
 
-@app.get("/")
-def read_root():
-    return {"Hello" : "World"}
+app = FastAPI()
 
 @app.post("/predict/")
 def predict(measurement:MeasurementData):
-    X = pd.DataFrame(
-        {
-            "temperature" : [measurement.temperature],
-            "humidity" : [measurement.humidity],
-            "noise" : [measurement.noise]
-            }
-        )
+    X = [[measurement.temperature, measurement.humidity, measurement.noise]]
     anomaly_score = model.predict(X)[0]
     if anomaly_score == -1:
         is_anomaly = True
@@ -41,6 +33,20 @@ def predict(measurement:MeasurementData):
 def insert_to_database(measurement, is_anomaly):
     print({"measurement" : measurement, "is_anomaly" : is_anomaly})
 
+@app.get("/model/info/")
+def model_info():
+    return {
+        "timestamp" : _now(),
+        "model_params" : model.get_params()
+    }
+
 @app.get("/health/")
 def health_check():
-    return {"Service is healthy" : True}
+    return {
+        "timestame" : _now(),
+        "is_healthy" : True
+        }
+
+# Helper functions
+def _now() -> str:
+    return datetime.now().replace(microsecond=0).isoformat()
