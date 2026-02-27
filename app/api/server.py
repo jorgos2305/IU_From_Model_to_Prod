@@ -15,23 +15,47 @@ class MeasurementData(BaseModel):
     noise : float
     is_anomaly : bool
 
+class PredictionReponse(BaseModel):
+    station_id : str
+    timestamp : datetime
+    is_anomaly : bool
+    y_true : bool
+
+# TODO: Setup resources on start up: Database, Model
+
+# database
+
+def insert_prediction(measurement, is_anomaly):
+    print({"measurement" : measurement, "is_anomaly" : is_anomaly})
+
+# Load anomaly detector
 model = TurbineAnomalyDetector()
 
 app = FastAPI()
+
+# endpoints
 
 @app.post("/predict/")
 def predict(measurement:MeasurementData):
     X = [[measurement.temperature, measurement.humidity, measurement.noise]]
     anomaly_score = model.predict(X)[0]
-    if anomaly_score == -1:
-        is_anomaly = True
-    else:
-        is_anomaly = False
-    insert_to_database(measurement, is_anomaly)
-    return {"is_anomaly" : is_anomaly, "y_true" : measurement.is_anomaly}
+    # if is anomaly the value returned by the Isolation forest is -1 otherwise 1
+    is_anomaly = anomaly_score == -1
 
-def insert_to_database(measurement, is_anomaly):
-    print({"measurement" : measurement, "is_anomaly" : is_anomaly})
+    # record prediction in DB
+    insert_prediction(measurement, is_anomaly)
+
+    return PredictionReponse(
+        station_id=measurement.station_id,
+        timestamp=measurement.timestamp,
+        is_anomaly=is_anomaly,
+        y_true=measurement.is_anomaly
+    )
+
+@app.post("/model/reload/")
+def reload_model():
+    model.reload()
+    return {"timestamp":_now(), "status": "reloaded"}
 
 @app.get("/model/info/")
 def model_info():
@@ -47,6 +71,7 @@ def health_check():
         "is_healthy" : True
         }
 
-# Helper functions
+# helpers
+
 def _now() -> str:
     return datetime.now().replace(microsecond=0).isoformat()
