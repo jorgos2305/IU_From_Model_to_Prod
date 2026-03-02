@@ -32,7 +32,7 @@ class TurbineAnomalyDetector:
             return pipeline
     
     def reload(self) -> None:
-        print("Loading new model")
+        print("[INFO] Loading new model")
         self._pipeline = self._load_model()
     
     def get_params(self) -> Dict[str, Any]:

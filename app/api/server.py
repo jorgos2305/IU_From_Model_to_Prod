@@ -63,7 +63,7 @@ def insert_prediction(measurement:MeasurementData, response:PredictionReponse, p
                 conn.commit()
             except Exception as exc:
                 conn.rollback()
-                print(f"[ERROR] Unable to unsert prediction into the database: {exc}")
+                print(f"[ERROR] Unable to insert prediction into the database: {exc}")
     return
     
 # ----------------- Load anomaly detector -----------------

@@ -16,6 +16,7 @@ class TurbineConsumer:
         self._api = api
 
     def consume(self) -> None:
+        print("[INFO] Start to consume data from Kafka")
         try:
             while True:
                 msg = self.consumer.poll(1.0)
@@ -49,7 +50,7 @@ class TurbineConsumer:
         try:
             response = requests.post(f"{self._api}/predict/", json=data)
             response.raise_for_status()
-            print(f"[INFO] Received response status code: {response.status_code}")
+            print(f"[INFO] Received response status code: {response.status_code}. {response.text}")
         except requests.HTTPError:
             print(f"[HTTPError] Unable to place request for prediction.")
             return
