@@ -79,7 +79,7 @@ app = FastAPI()
 @app.post("/predict/")
 def predict(measurement:MeasurementData):
     X = [[measurement.temperature, measurement.humidity, measurement.noise]]
-    anomaly_score = model.predict(X)[0]
+    anomaly_score = model.predict(X)
     # if is anomaly the value returned by the Isolation forest is -1 otherwise 1
     is_anomaly = anomaly_score == -1
     response = PredictionReponse(
@@ -101,7 +101,7 @@ def reload_model():
         The timestamo of when reload is triggered and the status of the model
     """
     model.reload()
-    return {"timestamp":_now(), "status": "reloaded"}
+    return {"request_timestamp":_now(), "model_loaded": model.get_model_info()}
 
 @app.get("/model/info/")
 def model_info():
@@ -111,8 +111,7 @@ def model_info():
     Returns:
         _type_: _description_
     """
-    return {"timestamp" : _now(), "model_params" : model.get_params()
-    }
+    return {"request_timestamp" : _now(), "model_params" : model.get_params()}
 
 @app.get("/health/")
 def health_check():
