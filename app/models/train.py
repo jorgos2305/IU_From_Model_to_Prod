@@ -1,4 +1,5 @@
 import mlflow
+from mlflow.client import MlflowClient
 from mlflow.models import infer_signature
 import numpy as np
 import pandas as pd
@@ -6,12 +7,13 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 import mysql.connector
-from typing import Dict, Tuple, List
+import requests
+from typing import Dict, Tuple
 
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import RocCurveDisplay, PrecisionRecallDisplay, precision_score, recall_score, f1_score
+from sklearn.metrics import precision_score, recall_score, f1_score
 from sklearn.model_selection import train_test_split
 
 # 1. set up training
@@ -40,20 +42,24 @@ mysql_config = {
     "port"      : int(os.getenv("DB_PORT", "3306")),
 }
 
+# 3. API info
+API_ADRESS = os.getenv("API_ADRESS")
+if not API_ADRESS:
+    raise ValueError("No API Information available")
+
 # 3. train
 
-def get_training_data(n_samples:int=15_000, config=mysql_config) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+def get_training_data(n_samples:int=15_000, config=mysql_config) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, int, int]:
     
     sql = """
-    SELECT temperature, humidity, noise, y_true
+    SELECT id, temperature, humidity, noise, y_true
     FROM turbine.prediction
-    ORDER BY ts DESC
+    ORDER BY id DESC
     LIMIT %s
     """
     try:
-        connection = mysql.connector.connect(**config)
-        with connection as conn:
-            df = pd.read_sql(sql, con=connection, params=(n_samples,))     # type: ignore
+        with mysql.connector.connect(**config) as conn:
+            df = pd.read_sql(sql, con=conn, params=(n_samples,))     # type: ignore
     except mysql.connector.errors.Error as mysql_error:
         raise ValueError(f"[ERROR] Database error: {mysql_error}")
     except Exception as exc:
@@ -65,11 +71,14 @@ def get_training_data(n_samples:int=15_000, config=mysql_config) -> Tuple[pd.Dat
     if db_samples < n_samples:
         print(f"[WARNING] Only {db_samples} available in database, requested {n_samples}")
     
+    min_id = df["id"].min()
+    max_id = df["id"].max()
+    
     X = df.drop(columns="y_true")
     y = df["y_true"]
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, stratify=y)
 
-    return X_train, X_test, y_train, y_test
+    return X_train, X_test, y_train, y_test, min_id, max_id
 
 def evaluate(y_true:pd.Series|np.ndarray, y_pred:pd.Series|np.ndarray) -> Dict:
     return {
@@ -78,11 +87,15 @@ def evaluate(y_true:pd.Series|np.ndarray, y_pred:pd.Series|np.ndarray) -> Dict:
         "f1_score" : f1_score(y_true, y_pred)
     }
     
-def train() -> str:
+def train() -> None:
 
     # Get the data
     print("[INFO] retrieving training data from database")
-    X_train, X_test, y_train, y_test = get_training_data()
+    X_train, X_test, y_train, y_test, min_id, max_id = get_training_data()
+    # after defining min and max id's are no longer requiered
+    X_train = X_train.drop(columns="id")
+    X_test = X_test.drop(columns="id")
+    print(f"[INFO] Range of training instances defined: {min_id} - {max_id}")
 
     # register training run
     with mlflow.start_run(run_name="Train_new_model") as run:
@@ -111,11 +124,14 @@ def train() -> str:
         anomaly_pipeline.fit(X_train)
 
         # add model to the registry
-        signature = infer_signature(X_train.iloc[:5,:], anomaly_pipeline.score_samples(X_train.iloc[:5,:]))
+        print(f"[INFO] Logging and registering model")
+        signature = infer_signature(X_train.iloc[:5,:], -anomaly_pipeline.score_samples(X_train.iloc[:5,:]))
         model_info = mlflow.sklearn.log_model( # type: ignore
             sk_model=anomaly_pipeline,
             name="TurbineAnomalyDetector",
-            signature=signature
+            registered_model_name="TurbineAnomalyDetector",
+            signature=signature,
+            input_example=X_train
             )
 
         # Use custom evaluation
@@ -140,8 +156,28 @@ def train() -> str:
         }
         mlflow.log_metrics(test_metrics)
 
-    return model_info.model_uri
+        client = MlflowClient()
+        model_name = model_info.name
+        new_model_version = str(model_info.registered_model_version)
+        model_alias = "champion"
+        client.set_registered_model_alias(model_name, model_alias, new_model_version)
+        client.set_registered_model_tag(model_name, "min_id", min_id)
+        client.set_registered_model_tag(model_name, "max_id", max_id)
+    
+    # after logging and registering the model request API to reload
+    try:
+        response = requests.post(f"{API_ADRESS}/model/reload/")
+        response.raise_for_status()
+    except requests.HTTPError as err:
+        print(f"[ERROR] Unable to place request for reload: {err}")
+        return
+    except Exception as exc:
+        print(f"[ERROR] Unexpected error: {exc}")
+        return
+
     
 if __name__ == "__main__":
     # quick tests
-    print(train())
+    train()
+    #exp = mlflow.get_experiment_by_name("TurbineAnomalyDetector_training")
+    #mlflow.tracking.MlflowClient().restore_experiment(exp.experiment_id)
