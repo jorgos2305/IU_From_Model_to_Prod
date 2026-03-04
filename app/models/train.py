@@ -74,7 +74,8 @@ def get_training_data(n_samples:int=15_000, config=mysql_config) -> Tuple[pd.Dat
     min_id = df["id"].min()
     max_id = df["id"].max()
     
-    X = df.drop(columns="y_true")
+    # after defining min and max id's are no longer requiered
+    X = df.drop(columns=["id", "y_true"])
     y = df["y_true"]
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, stratify=y)
 
@@ -92,9 +93,6 @@ def train() -> None:
     # Get the data
     print("[INFO] retrieving training data from database")
     X_train, X_test, y_train, y_test, min_id, max_id = get_training_data()
-    # after defining min and max id's are no longer requiered
-    X_train = X_train.drop(columns="id")
-    X_test = X_test.drop(columns="id")
     print(f"[INFO] Range of training instances defined: {min_id} - {max_id}")
 
     # register training run

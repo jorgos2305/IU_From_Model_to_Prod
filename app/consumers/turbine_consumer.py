@@ -66,8 +66,8 @@ if __name__ == "__main__":
         raise ValueError(f"No environment variable found under {str(BASEPATH)}. Check file location.")
     
     bootstrap_servers = os.getenv("BOOTSTRAP_SERVERS")
-    api_adress = os.getenv("API_ADRESS")
-    if bootstrap_servers is None or api_adress is None:
+    api_address = os.getenv("API_ADDRESS")
+    if bootstrap_servers is None or api_address is None:
         raise ValueError("Unable to load environment variables.")
 
     # kafka consumer config
@@ -86,6 +86,6 @@ if __name__ == "__main__":
     consumer = TurbineConsumer(
         config=config,
         topic=topic,
-        api=api_adress
+        api=api_address
     )
     consumer.consume()

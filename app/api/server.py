@@ -47,7 +47,7 @@ mysql_config = {
 # database connection pool
 pool = mysql.connector.pooling.MySQLConnectionPool(pool_name="turbine_pool", pool_size=1, **mysql_config)
 
-def insert_prediction(measurement:MeasurementData, response:PredictionReponse, pool:mysql.connector.pooling.MySQLConnectionPool=pool) -> None:
+def insert_prediction(measurement:MeasurementData, response:PredictionReponse, pool:mysql.connector.pooling.MySQLConnectionPool) -> None:
     """
     Insert prediction data into the MySQL database.
     """
@@ -89,7 +89,7 @@ def predict(measurement:MeasurementData):
         y_true=measurement.is_anomaly
     )
     # record prediction in DB
-    insert_prediction(measurement, response)
+    insert_prediction(measurement, response, pool)
     return response
 
 @app.post("/model/reload/")
@@ -121,7 +121,7 @@ def health_check():
     Returns:
         Time stamp of the health check
     """
-    return {"timestame" : _now(), "is_healthy" : True}
+    return {"request_timestamp" : _now(), "is_healthy" : True}
 
 # ----------------- helpers -----------------
 
