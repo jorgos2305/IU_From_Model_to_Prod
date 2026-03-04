@@ -43,8 +43,8 @@ mysql_config = {
 }
 
 # 3. API info
-API_ADRESS = os.getenv("API_ADRESS")
-if not API_ADRESS:
+API_ADDRESS = os.getenv("API_ADDRESS")
+if not API_ADDRESS:
     raise ValueError("No API Information available")
 
 # 3. train
@@ -159,12 +159,14 @@ def train() -> None:
         new_model_version = str(model_info.registered_model_version)
         model_alias = "champion"
         client.set_registered_model_alias(model_name, model_alias, new_model_version)
-        client.set_registered_model_tag(model_name, "min_id", min_id)
-        client.set_registered_model_tag(model_name, "max_id", max_id)
+        client.set_model_version_tag(model_name, new_model_version, "min_id", min_id)
+        client.set_model_version_tag(model_name, new_model_version, "max_id", max_id)
+        #client.set_registered_model_tag(model_name, "min_id", min_id)
+        #client.set_registered_model_tag(model_name, "max_id", max_id)
     
     # after logging and registering the model request API to reload
     try:
-        response = requests.post(f"{API_ADRESS}/model/reload/")
+        response = requests.post(f"{API_ADDRESS}/model/reload/")
         response.raise_for_status()
     except requests.HTTPError as err:
         print(f"[ERROR] Unable to place request for reload: {err}")
