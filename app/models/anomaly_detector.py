@@ -60,7 +60,8 @@ class TurbineAnomalyDetector:
         return {
             "model_name" : self._model_info.name,
             "model_aliases" : aliases,
-            "model_version" : self._model_info.version
+            "model_version" : self._model_info.version,
+            "run_id" : self._model_info.run_id
         }
 
 if __name__ == "__main__":

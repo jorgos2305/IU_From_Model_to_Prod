@@ -177,7 +177,6 @@ def train() -> None:
 
     
 if __name__ == "__main__":
-    # quick tests
+
     train()
-    #exp = mlflow.get_experiment_by_name("TurbineAnomalyDetector_training")
-    #mlflow.tracking.MlflowClient().restore_experiment(exp.experiment_id)
+

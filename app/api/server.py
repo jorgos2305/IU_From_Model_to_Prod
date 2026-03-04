@@ -32,6 +32,7 @@ class PredictionReponse(BaseModel):
     timestamp  : datetime
     is_anomaly : bool
     y_true     : bool
+    run_id     : str
 
 # ----------------- database -----------------
 
@@ -51,10 +52,10 @@ def insert_prediction(measurement:MeasurementData, response:PredictionReponse, p
     """
     Insert prediction data into the MySQL database.
     """
-    add_prediction = f"""INSERT INTO prediction (station_id, ts, temperature, humidity, noise, is_anomaly, y_true, created_at)
-                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
+    add_prediction = f"""INSERT INTO prediction (station_id, ts, temperature, humidity, noise, is_anomaly, y_true, created_at, mlflow_id)
+                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
     
-    values = (measurement.station_id, measurement.timestamp, measurement.temperature, measurement.humidity, measurement.noise, response.is_anomaly, measurement.is_anomaly, _now())
+    values = (measurement.station_id, measurement.timestamp, measurement.temperature, measurement.humidity, measurement.noise, response.is_anomaly, measurement.is_anomaly, _now(), response.run_id)
 
     with pool.get_connection() as conn:
         with conn.cursor() as cursor:
@@ -86,7 +87,8 @@ def predict(measurement:MeasurementData):
         station_id=measurement.station_id,
         timestamp=measurement.timestamp,
         is_anomaly=is_anomaly,
-        y_true=measurement.is_anomaly
+        y_true=measurement.is_anomaly,
+        run_id=model.get_model_info()["run_id"]
     )
     # record prediction in DB
     insert_prediction(measurement, response, pool)

@@ -5,3 +5,4 @@ __pycache__
 *.pyc
 notebooks/
 mlflow.db
+mlartifacts/
