@@ -9,8 +9,6 @@ import pandas as pd
 from typing import Dict, Tuple
 from scipy.stats import ttest_ind
 
-from sklearn.pipeline import Pipeline
-
 from app.models.train import train
 
 class MonitorService:
