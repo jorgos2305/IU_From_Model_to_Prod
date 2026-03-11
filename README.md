@@ -16,7 +16,7 @@ To implement a system that:
 2. Detects anomalies in production
 3. Integrates a machine learning model into a production pipeline
 4. Serves predictions over a REST API
-5. Support monitoring, scalability, maintainability and traceability
+5. Supports monitoring, scalability, maintainability and traceability
 
 ## Dataset information
 
@@ -90,24 +90,24 @@ mysql -u root -p -h 127.0.0.1 < app/database/turbine.sql
 
 ### Apache Kafka
 
-The project uses a recent Kafka version and does not utilize Zookeeper, it runs in __KRaft mode__.
+The project uses ```Kafka 3.6.2``` and does not utilize Zookeeper anymore, it runs in __KRaft mode__.
 
 For more details see:  
 [KRaft vs. Zookeeper](https://kafka.apache.org/42/getting-started/zk2kraft/).
 
-To setup the Kafka topic follow the steps below:
+To set up the Kafka topic follow the steps below:
 
 1. In your terminal go to the folder where your Kafka installation is located
 2. Enter the following command to setup the topic:
 
 ```bash
 bin/kafka-topics.sh --create \
--- bootstrap-server localhost:9092 \
--- topic turbine_p1 \
--- partitions 1 \
--- replication-factor 1 \
--- config min.insync.replicas=1 \
--- config retention.ms=86400000
+--bootstrap-server localhost:9092 \
+--topic turbine_p1 \
+--partitions 1 \
+--replication-factor 1 \
+--config min.insync.replicas=1 \
+--config retention.ms=86400000
 ```
 3. Once the Topic has been set up, run the following to start Kafka:
 
@@ -122,6 +122,18 @@ Once the environment is activated, run:
 
 ```bash
 mlflow server --port 5000
+```
+
+Your MLflow IU will be available at:
+
+http://127.0.0.1:5000
+
+### Environment variables
+
+Copy the `.env.example` file and modify the values according to your environment variables.
+
+```bash
+cp .env.example .env
 ```
 
 ### Anomaly Detection System
