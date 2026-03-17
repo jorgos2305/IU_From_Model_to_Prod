@@ -8,8 +8,10 @@ from dotenv import load_dotenv
 import pandas as pd
 from typing import Dict, Tuple
 from scipy.stats import ttest_ind
+import logging
 
 from app.models.train import train
+from app.logging_config import setup_logging
 
 class MonitorService:
 
@@ -22,6 +24,7 @@ class MonitorService:
         self._alpha = alpha
         self._model_name = "TurbineAnomalyDetector"
         self._model_alias = "champion"
+        self._logger = logging.getLogger(__name__)
     
     def run_check(self) -> None:
         # when staring get the data the model was trained on
@@ -32,25 +35,25 @@ class MonitorService:
                 most_recent_data = self._get_most_recent_data(from_id)
                 n_rows, _ = most_recent_data.shape
                 if n_rows < self._n_samples: # not enough data for retraining
-                    print(f"[INFO] Not enough data for training. Found: {n_rows} Requested:{self._n_samples}")
-                    print(f"[INFO] Waiting for {self._check_interval} seconds")
+                    self._logger.info(f"Not enough data for training. Found: {n_rows} Requested:{self._n_samples}")
+                    self._logger.info(f"Waiting for {self._check_interval} seconds")
                     time.sleep(self._check_interval)
                     continue
-                print(f"[INFO] Enough data for training deteted: {n_rows}")
-                print(f"[INFO] Start drift check")
+                self._logger.info(f"Enough data for training deteted: {n_rows}")
+                self._logger.info(f"Start drift check")
                 training_data = self._get_reference_data(min_id, max_id)
                 has_drifted = self._check_drift(training_data, most_recent_data.drop(columns="id"))
                 if has_drifted:
                     self._trigger_retrain()
                     min_id, max_id = self._get_champion_ids()
                     from_id = max_id
-                    print(f"[INFO] Retrain triggered. New champion: min_id={min_id}, max_id={max_id}")
+                    self._logger.info(f"Retrain triggered. New champion: min_id={min_id}, max_id={max_id}")
                 else:
                     from_id = int(most_recent_data["id"].iloc[-1])
-                    print(f"[INFO] No drift detected. New id for most recent data: {from_id}")
+                    self._logger.info(f"No drift detected. New id for most recent data: {from_id}")
                 time.sleep(self._check_interval)
         except KeyboardInterrupt:
-            print(f"[INFO] Monitor service stopped by user")
+            self._logger.info(f"Monitor service stopped by user")
 
     def _get_champion_ids(self) -> Tuple[int, int]:
         client = MlflowClient()
@@ -99,7 +102,7 @@ class MonitorService:
             result = ttest_ind(df1[col], df2[col], equal_var=False, alternative="two-sided")
             drifted = result.pvalue <= self._alpha # type: ignore
             if drifted:
-                print(f"[INFO] Drift detected in '{col}' (p={result.pvalue:.6f}) alpha={self._alpha})") # type: ignore
+                self._logger.info(f"Drift detected in '{col}' (p={result.pvalue:.6f}) alpha={self._alpha})") # type: ignore
                 return drifted
         return drifted
     
@@ -110,7 +113,10 @@ class MonitorService:
             raise RuntimeError(f"[ERROR] New model cannot be trained: {exc}")
 
 if __name__ == "__main__":
-    
+
+    # setup logging
+    setup_logging(log_file="monitor.log")
+
     # make sure env is found
     BASEPATH = Path(__file__).resolve().parents[2]
     config_loaded = load_dotenv(BASEPATH / ".env")

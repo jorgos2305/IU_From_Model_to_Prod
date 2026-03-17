@@ -6,3 +6,4 @@ __pycache__
 notebooks/
 mlflow.db
 mlartifacts/
+logs/

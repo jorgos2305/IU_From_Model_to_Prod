@@ -9,12 +9,15 @@ from dotenv import load_dotenv
 import mysql.connector
 import requests
 from typing import Dict, Tuple
+import logging
 
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import precision_score, recall_score, f1_score
 from sklearn.model_selection import train_test_split
+
+logger = logging.getLogger(__name__)
 
 # 1. set up training
 
@@ -69,7 +72,7 @@ def get_training_data(n_samples:int=15_000, config=mysql_config) -> Tuple[pd.Dat
     
     db_samples, _ = df.shape
     if db_samples < n_samples:
-        print(f"[WARNING] Only {db_samples} available in database, requested {n_samples}")
+        logger.warning(f"Only {db_samples} available in database, requested {n_samples}")
     
     min_id = df["id"].min()
     max_id = df["id"].max()

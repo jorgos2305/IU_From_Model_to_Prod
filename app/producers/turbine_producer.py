@@ -6,8 +6,10 @@ from datetime import datetime
 from dotenv import load_dotenv
 from confluent_kafka import Producer, Message, KafkaError
 from typing import Dict
+import logging
 
 from app.sensors.production_line import MeasurementStation
+from app.logging_config import setup_logging
 
 class TurbineProducer:
     
@@ -15,6 +17,7 @@ class TurbineProducer:
         self.station = station
         self.producer = Producer(config)
         self._topic = topic
+        self.logger = logging.getLogger(__name__)
 
     def get_measurement(self) -> str:
         measurement = self.station.get_measurement()
@@ -32,21 +35,21 @@ class TurbineProducer:
                 self.producer.poll(0)
                 time.sleep(1)
         except KeyboardInterrupt:
-            print(f"[INFO] Producer stopped by user - {datetime.now().replace(microsecond=0).isoformat()}")
+            self.logger.info("Producer stopped by user")
         finally:
             self.producer.flush()
 
     def delivery_callback(self, error:KafkaError | None, msg:Message):
-        timestamp_type, timestamp = msg.timestamp()
-        timestamp = datetime.fromtimestamp(timestamp / 1000).isoformat()
-
         if error:
-            print(f"[ERROR] Message delivery failed: {error} - {timestamp}")
+            self.logger.error(f"Message delivery failed: {error}")
         else:
-            print(f"[INFO] Message with key: {msg.key()} delivered to Topic: {msg.topic()} Partition:{msg.partition()} Offset:{msg.offset()} - Timestamp[{timestamp_type}]:{timestamp}")
+            self.logger.info(f"Message with key: {msg.key()} delivered to Topic: {msg.topic()} Partition:{msg.partition()} Offset:{msg.offset()}")
 
 
 if __name__ == "__main__":
+
+    # setup logging
+    setup_logging(log_file="producer.log")
 
     BASEPATH = Path(__file__).resolve().parents[2]
     
